@@ -84,7 +84,7 @@ Path SpaceTimeAStar::findOptimalPath(const set<int>& higher_agents, const vector
             }
             
             if (constraint_table.constrained(next_location, next_timestep) || 
-                (k_robust!=0 and constraint_table.constrained(curr->location, next_location, next_timestep)))
+                (k_robust==0 and constraint_table.constrained(curr->location, next_location, next_timestep)))
                 continue;
 
             // compute cost to next_id via curr node
