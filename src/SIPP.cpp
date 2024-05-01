@@ -29,7 +29,7 @@ Path SIPP::findOptimalPath(const set<int>& higher_agents, const vector<Path*>& p
 
     // build constraint table
     auto t = clock();
-    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size);
+    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size, k_robust);
     for (int a : higher_agents)
     {
         constraint_table.insert2CT(*paths[a]);

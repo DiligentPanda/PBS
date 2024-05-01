@@ -9,6 +9,8 @@ public:
     size_t num_col;
     size_t map_size;
 
+    int k_robust = 0;
+
     int getHoldingTime(int location, int earliest_timestep) const; // the earliest timestep that the agent can hold the location after earliest_timestep
     int getMaxTimestep() const; // everything is static after the max timestep
     int getLastCollisionTimestep(int location) const;
@@ -21,7 +23,7 @@ public:
     bool hasEdgeConflict(size_t curr_id, size_t next_id, int next_timestep) const;
     int getFutureNumOfCollisions(int loc, int t) const;
 
-    ConstraintTable(size_t num_col, size_t map_size) : num_col(num_col), map_size(map_size) {}
+    ConstraintTable(size_t num_col, size_t map_size, int k_robust) : num_col(num_col), map_size(map_size), k_robust(k_robust) {}
     ConstraintTable(const ConstraintTable& other) { copy(other); }
     ~ConstraintTable() = default;
 

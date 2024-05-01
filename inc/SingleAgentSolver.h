@@ -106,10 +106,11 @@ public:
 	// int getStartLocation() const {return instance.start_locations[agent]; }
 	// int getGoalLocation() const {return instance.goal_locations[agent]; }
 
-	SingleAgentSolver(const Instance& instance, int agent) :
+	SingleAgentSolver(const Instance& instance, int agent, int k_robust) :
 		instance(instance), //agent(agent), 
 		start_location(instance.start_locations[agent]),
-		goal_location(instance.goal_locations[agent])
+		goal_location(instance.goal_locations[agent]),
+		k_robust(k_robust)
 	{
 		compute_heuristics();
 	}
@@ -119,6 +120,7 @@ public:
 protected:
 	int min_f_val; // minimal f value in OPEN
 	double w = 1; // suboptimal bound
+	int k_robust = 0;
 
 	void compute_heuristics();
 	int get_DH_heuristic(int from, int to) const { return abs(my_heuristic[from] - my_heuristic[to]); }

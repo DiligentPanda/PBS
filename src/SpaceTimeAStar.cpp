@@ -25,7 +25,7 @@ Path SpaceTimeAStar::findOptimalPath(const set<int>& higher_agents, const vector
 
     // build constraint table
     auto t = clock();
-    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size);
+    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size, k_robust);
     for (int a : higher_agents)
     {
         constraint_table.insert2CT(*paths[a]);
@@ -82,9 +82,9 @@ Path SpaceTimeAStar::findOptimalPath(const set<int>& higher_agents, const vector
                 }
                 next_timestep--;
             }
-
-            if (constraint_table.constrained(next_location, next_timestep) ||
-                constraint_table.constrained(curr->location, next_location, next_timestep))
+            
+            if (constraint_table.constrained(next_location, next_timestep) || 
+                (k_robust!=0 and constraint_table.constrained(curr->location, next_location, next_timestep)))
                 continue;
 
             // compute cost to next_id via curr node

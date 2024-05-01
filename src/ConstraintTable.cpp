@@ -42,24 +42,47 @@ void ConstraintTable::insert2CT(size_t loc, int t_min, int t_max)
 
 void ConstraintTable::insert2CT(const Path& path)
 {
-    int prev_location = path.front().location;
-    int prev_timestep = 0;
-    for (int timestep = 0; timestep < (int) path.size(); timestep++)
-    {
-        auto curr_location = path[timestep].location;
-        if (prev_location != curr_location)
+    if (k_robust==0) {
+        int prev_location = path.front().location;
+        int prev_timestep = 0;
+        for (int timestep = 0; timestep < (int) path.size(); timestep++)
         {
-            insert2CT(prev_location, prev_timestep, timestep); // add vertex conflict
-            insert2CT(curr_location, prev_location, timestep, timestep + 1); // add edge conflict
-            prev_location = curr_location;
-            prev_timestep = timestep;
+            auto curr_location = path[timestep].location;
+            if (prev_location != curr_location)
+            {
+                insert2CT(prev_location, prev_timestep, timestep); // add vertex conflict
+                insert2CT(curr_location, prev_location, timestep, timestep + 1); // add edge conflict
+                prev_location = curr_location;
+                prev_timestep = timestep;
+            }
         }
+        insert2CT(path.back().location, (int) path.size() - 1, MAX_TIMESTEP);
+    } else {
+        int prev_location = path.front().location;
+        int prev_timestep = 0;
+        for (int timestep = 0; timestep < (int) path.size(); timestep++)
+        {
+            auto curr_location = path[timestep].location;
+            if (prev_location != curr_location)
+            {
+                insert2CT(prev_location, max(0,prev_timestep-k_robust), timestep+k_robust+1); // add vertex conflict
+                prev_location = curr_location;
+                prev_timestep = timestep;
+            }
+        }
+        // we split into two here because of the way to update ct_max_timestep
+        insert2CT(path.back().location, max(0,prev_timestep-k_robust), path.size()+k_robust+1);
+        insert2CT(path.back().location, path.size()+k_robust+1, MAX_TIMESTEP);
     }
-    insert2CT(path.back().location, (int) path.size() - 1, MAX_TIMESTEP);
 }
 
 void ConstraintTable::insertLandmark(size_t loc, int t)
 {
+    if (k_robust!=0) {
+        cout<<"ConstraintTable::insertLandmark has not been checked for k_robust!=0"<<endl;
+        exit(-1);
+    }
+
     auto it = landmarks.find(t);
     if (it == landmarks.end())
     {
@@ -87,21 +110,28 @@ void ConstraintTable::insert2CAT(const Path& path)
         cat_goals.resize(map_size, MAX_TIMESTEP);
     }
     assert(cat_goals[path.back().location] == MAX_TIMESTEP);
-    cat_goals[path.back().location] = path.size() - 1;
+    cat_goals[path.back().location] = path.size() - 1 + k_robust;
     for (auto timestep = (int)path.size() - 1; timestep >= 0; timestep--)
     {
         int loc = path[timestep].location;
         if (cat[loc].size() <= timestep)
-            cat[loc].resize(timestep + 1, false);
-        cat[loc][timestep] = true;
+            cat[loc].resize(timestep + 1 + k_robust, false);
+        for (int t=max(timestep-k_robust,0); t<=timestep+k_robust; t++){
+            cat[loc][t] = true;
+        }
     }
-    cat_max_timestep = max(cat_max_timestep, (int)path.size() - 1);
+    cat_max_timestep = max(cat_max_timestep, (int)path.size() - 1 + k_robust);
 }
 
 
 // return the location-time pairs on the barrier in an increasing order of their timesteps
 list<pair<int, int> > ConstraintTable::decodeBarrier(int x, int y, int t) const
 {
+    if (k_robust!=0) {
+        cout<<"ConstraintTable::decodeBarrier has not been checked for k_robust!=0"<<endl;
+        exit(-1);
+    }
+
     list<pair<int, int> > rst;
     int x1 = x / num_col, y1 = x % num_col;
     int x2 = y / num_col, y2 = y % num_col;
@@ -167,6 +197,7 @@ void ConstraintTable::copy(const ConstraintTable& other)
     length_max = other.length_max;
     num_col = other.num_col;
     map_size = other.map_size;
+    k_robust = other.k_robust;
     ct = other.ct;
     ct_max_timestep = other.ct_max_timestep;
     cat = other.cat;
@@ -183,8 +214,9 @@ int ConstraintTable::getNumOfConflictsForStep(size_t curr_id, size_t next_id, in
     {
         if (cat[next_id].size() > next_timestep and cat[next_id][next_timestep])
             rst++;
+        // rivers: this doesn't necessarily mean edge collision because agent id is not recorded?
         if (curr_id != next_id and cat[next_id].size() >= next_timestep and cat[curr_id].size() > next_timestep and
-            cat[next_id][next_timestep - 1]and cat[curr_id][next_timestep])
+            cat[next_id][next_timestep - 1] and cat[curr_id][next_timestep])
             rst++;
         if (cat_goals[next_id] < next_timestep)
             rst++;
@@ -197,8 +229,9 @@ bool ConstraintTable::hasConflictForStep(size_t curr_id, size_t next_id, int nex
     {
         if (cat[next_id].size() > next_timestep and cat[next_id][next_timestep])
             return true;
+        // rivers: this doesn't necessarily mean edge collision because agent id is not recorded?
         if (curr_id != next_id and cat[next_id].size() >= next_timestep and cat[curr_id].size() > next_timestep and
-            cat[next_id][next_timestep - 1]and cat[curr_id][next_timestep])
+            cat[next_id][next_timestep - 1] and cat[curr_id][next_timestep])
             return true;
         if (cat_goals[next_id] < next_timestep)
             return true;

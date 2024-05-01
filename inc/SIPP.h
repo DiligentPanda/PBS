@@ -65,8 +65,15 @@ public:
 
     string getName() const override { return "SIPP"; }
 
-    SIPP(const Instance& instance, int agent):
-            SingleAgentSolver(instance, agent) {}
+    SIPP(const Instance& instance, int agent, int k_robust):
+            SingleAgentSolver(instance, agent, k_robust) {
+        
+        if (k_robust!=0) {
+            cout << "SIPP has not been checked for k_robust!=0" << endl;
+            exit(1);
+        }
+    
+    }
 
 private:
     // define typedefs and handles for heap

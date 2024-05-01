@@ -23,7 +23,7 @@ public:
 	PBSNode* dummy_start = nullptr;
     PBSNode* goal_node = nullptr;
 
-
+	int k_robust = 0;
 
 	bool solution_found = false;
 	int solution_cost = -2;
@@ -37,7 +37,7 @@ public:
 	// Runs the algorithm until the problem is solved or time is exhausted 
 	bool solve(double time_limit);
 
-	PBS(const Instance& instance, bool sipp, int screen);
+	PBS(const Instance& instance, bool sipp, int k_robust, int screen);
 	void clearSearchEngines();
 	~PBS();
 

@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 		("stats", po::value<bool>()->default_value(false), "write to files some detailed statistics")
 
 		("sipp", po::value<bool>()->default_value(1), "using SIPP as the low-level solver")
+		("kRobust,r", po::value<int>()->default_value(0), "generate k-robust plan.")
 		;
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
 		vm["agentNum"].as<int>());
 
 	srand(0);
-    PBS pbs(instance, vm["sipp"].as<bool>(), vm["screen"].as<int>());
+    PBS pbs(instance, vm["sipp"].as<bool>(), vm["kRobust"].as<int>(), vm["screen"].as<int>());
     // run
     double runtime = 0;
     pbs.solve(vm["cutoffTime"].as<double>());

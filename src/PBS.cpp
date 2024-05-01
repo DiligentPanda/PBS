@@ -6,9 +6,10 @@
 #include "SpaceTimeAStar.h"
 
 
-PBS::PBS(const Instance& instance, bool sipp, int screen) :
+PBS::PBS(const Instance& instance, bool sipp, int k_robust, int screen) :
         screen(screen),
-        num_of_agents(instance.getDefaultNumberOfAgents())
+        num_of_agents(instance.getDefaultNumberOfAgents()),
+        k_robust(k_robust)
 {
     clock_t t = clock();
 
@@ -16,9 +17,9 @@ PBS::PBS(const Instance& instance, bool sipp, int screen) :
     for (int i = 0; i < num_of_agents; i++)
     {
         if (sipp)
-            search_engines[i] = new SIPP(instance, i);
+            search_engines[i] = new SIPP(instance, i, k_robust);
         else
-            search_engines[i] = new SpaceTimeAStar(instance, i);
+            search_engines[i] = new SpaceTimeAStar(instance, i, k_robust);
     }
     runtime_preprocessing = (double)(clock() - t) / CLOCKS_PER_SEC;
 
@@ -268,34 +269,71 @@ inline void PBS::update(PBSNode* node)
 }
 
 bool PBS::hasConflicts(int a1, int a2) const
-{
-	int min_path_length = (int) (paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size());
-	for (int timestep = 0; timestep < min_path_length; timestep++)
-	{
-		int loc1 = paths[a1]->at(timestep).location;
-		int loc2 = paths[a2]->at(timestep).location;
-		if (loc1 == loc2 or (timestep < min_path_length - 1 and loc1 == paths[a2]->at(timestep + 1).location
-                             and loc2 == paths[a1]->at(timestep + 1).location)) // vertex or edge conflict
-		{
-            return true;
-		}
-	}
-	if (paths[a1]->size() != paths[a2]->size())
-	{
-		int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
-		int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
-		int loc1 = paths[a1_]->back().location;
-		for (int timestep = min_path_length; timestep < (int)paths[a2_]->size(); timestep++)
-		{
-			int loc2 = paths[a2_]->at(timestep).location;
-			if (loc1 == loc2)
-			{
-				return true; // target conflict
-			}
-		}
-	}
+{	
+    // we will check for vertex and edge conflicts when there is no k-robust requirement
+    if (k_robust==0) {
+        int min_path_length = (int) (paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size());
+        for (int timestep = 0; timestep < min_path_length; timestep++)
+        {
+            int loc1 = paths[a1]->at(timestep).location;
+            int loc2 = paths[a2]->at(timestep).location;
+            if (loc1 == loc2 or (timestep < min_path_length - 1 and loc1 == paths[a2]->at(timestep + 1).location
+                                and loc2 == paths[a1]->at(timestep + 1).location)) // vertex or edge conflict
+            {
+                return true;
+            }
+        }
+        if (paths[a1]->size() != paths[a2]->size())
+        {
+            int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
+            int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
+            int loc1 = paths[a1_]->back().location;
+            for (int timestep = min_path_length; timestep < (int)paths[a2_]->size(); timestep++)
+            {
+                int loc2 = paths[a2_]->at(timestep).location;
+                if (loc1 == loc2)
+                {
+                    return true; // target conflict
+                }
+            }
+        }
+    } else {
+
+        int a_min,a_max;
+        if (paths[a1]->size() < paths[a2]->size()) {
+            a_min = a1;
+            a_max = a2;
+        } else {
+            a_min = a2;
+            a_max = a1;
+        }
+
+        for (int timestep=0;timestep<(int)paths[a_min]->size();timestep++) {
+            int loc1 = paths[a_min]->at(timestep).location;
+            for (int t=min(timestep+k_robust,(int)paths[a_max]->size()-1);t>=max(timestep-k_robust,0);t--) {
+                int loc2 = paths[a_max]->at(t).location;
+                if (loc1 == loc2) {
+                    return true;
+                }
+            }
+        }
+
+        if (paths[a_min]->size() != paths[a_max]->size())
+        {
+            int loc1 = paths[a_min]->back().location;
+            for (int timestep = (int)paths[a_min]->size()+k_robust; timestep < (int)paths[a_max]->size();timestep++)
+            {
+                int loc2 = paths[a_max]->at(timestep).location;
+                if (loc1 == loc2)
+                {
+                    return true; // target conflict
+                }
+            }
+        }
+    }
     return false; // conflict-free
 }
+
 bool PBS::hasConflicts(int a1, const set<int>& agents) const
 {
     for (auto a2 : agents)
