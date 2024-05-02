@@ -363,7 +363,12 @@ bool Instance::loadAgents()
 		char_separator<char> sep("\t");
 		for (int i = 0; i < num_of_agents; i++)
 		{
-			getline(myfile, line);
+			auto & ifstream=getline(myfile, line);
+			if (!ifstream)
+			{
+				cerr << "There is no enough agents. Error reading agent " << i << endl;
+				exit(-1);
+			}
 			tokenizer< char_separator<char> > tok(line, sep);
 			tokenizer< char_separator<char> >::iterator beg = tok.begin();
 			beg++; // skip the first number
