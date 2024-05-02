@@ -731,41 +731,79 @@ bool PBS::validateSolution() const
 		soc += paths[a1]->size() - 1;
 		for (int a2 = a1 + 1; a2 < num_of_agents; a2++)
 		{
-			size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
-			for (size_t timestep = 0; timestep < min_path_length; timestep++)
-			{
-				int loc1 = paths[a1]->at(timestep).location;
-				int loc2 = paths[a2]->at(timestep).location;
-				if (loc1 == loc2)
-				{
-					cout << "Agents " << a1 << " and " << a2 << " collides at " << loc1 << " at timestep " << timestep << endl;
-					return false;
-				}
-				else if (timestep < min_path_length - 1
-					&& loc1 == paths[a2]->at(timestep + 1).location
-					&& loc2 == paths[a1]->at(timestep + 1).location)
-				{
-					cout << "Agents " << a1 << " and " << a2 << " collides at (" <<
-						loc1 << "-->" << loc2 << ") at timestep " << timestep << endl;
-					return false;
-				}
-			}
-			if (paths[a1]->size() != paths[a2]->size())
-			{
-				int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
-				int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
-				int loc1 = paths[a1_]->back().location;
-				for (size_t timestep = min_path_length; timestep < paths[a2_]->size(); timestep++)
-				{
-					int loc2 = paths[a2_]->at(timestep).location;
-					if (loc1 == loc2)
-					{
-						cout << "Agents " << a1 << " and " << a2 << " collides at " << loc1 << " at timestep " << timestep << endl;
-						return false; // It's at least a semi conflict			
-					}
-				}
-			}
-		}
+            if (k_robust==0) {
+                size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
+                for (size_t timestep = 0; timestep < min_path_length; timestep++)
+                {
+                    int loc1 = paths[a1]->at(timestep).location;
+                    int loc2 = paths[a2]->at(timestep).location;
+                    if (loc1 == loc2)
+                    {
+                        cout << "Agents " << a1 << " and " << a2 << " collides at " << loc1 << " at timestep " << timestep << endl;
+                        return false;
+                    }
+                    else if (timestep < min_path_length - 1
+                        && loc1 == paths[a2]->at(timestep + 1).location
+                        && loc2 == paths[a1]->at(timestep + 1).location)
+                    {
+                        cout << "Agents " << a1 << " and " << a2 << " collides at (" <<
+                            loc1 << "-->" << loc2 << ") at timestep " << timestep << endl;
+                        return false;
+                    }
+                }
+                if (paths[a1]->size() != paths[a2]->size())
+                {
+                    int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
+                    int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
+                    int loc1 = paths[a1_]->back().location;
+                    for (size_t timestep = min_path_length; timestep < paths[a2_]->size(); timestep++)
+                    {
+                        int loc2 = paths[a2_]->at(timestep).location;
+                        if (loc1 == loc2)
+                        {
+                            cout << "Agents " << a1 << " and " << a2 << " collides at " << loc1 << " at timestep " << timestep << endl;
+                            return false; // It's at least a semi conflict			
+                        }
+                    }
+                }
+            } else  {
+                int a_min,a_max;
+                if (paths[a1]->size() < paths[a2]->size()) {
+                    a_min = a1;
+                    a_max = a2;
+                } else {
+                    a_min = a2;
+                    a_max = a1;
+                }
+
+                for (int timestep=0;timestep<(int)paths[a_min]->size();timestep++) {
+                    int loc1 = paths[a_min]->at(timestep).location;
+                    for (int t=min(timestep+k_robust,(int)paths[a_max]->size()-1);t>=max(timestep-k_robust,0);t--) {
+                        int loc2 = paths[a_max]->at(t).location;
+                        if (loc1 == loc2) {
+                            cout << "Agents " << a_min <<" (timestep="<<timestep<<",path length="<<paths[a_min]->size()<<") and "
+                            << a_max <<" (timestep="<<timestep<<",path length="<<paths[a_max]->size()<<") collide at " << loc1 << " in the "<<k_robust<<"-robust setting."<< endl;
+                            return false;
+                        }
+                    }
+                }
+
+                if (paths[a_min]->size() != paths[a_max]->size())
+                {
+                    int loc1 = paths[a_min]->back().location;
+                    for (int timestep = (int)paths[a_min]->size()+k_robust; timestep < (int)paths[a_max]->size();timestep++)
+                    {
+                        int loc2 = paths[a_max]->at(timestep).location;
+                        if (loc1 == loc2)
+                        {
+                            cout << "Agents " << a_min <<" (timestep="<<timestep<<",path length="<<paths[a_min]->size()<<") and "
+                            << a_max <<" (timestep="<<timestep<<",path length="<<paths[a_max]->size()<<") collide at " << loc1 << " in the "<<k_robust<<"-robust setting."<< endl;
+                            return false; // target conflict
+                        }
+                    }
+                }
+            }
+        }
 	}
 	if ((int)soc != solution_cost)
 	{
